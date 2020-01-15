@@ -1,3 +1,4 @@
+import abc
 import bisect
 import click
 import numpy as np
@@ -34,15 +35,28 @@ class Pile(object):
             return 0
 
 
-class Player(object):
-    def __init__(self, uid, hand):
-        name = click.prompt(f'Player {uid}\'s name', type=str)
+class Player(abc.ABC):
+    def __init__(self, uid, name, hand):
         self.name = f'(UID: {uid}) {name}'
         self.hand = sorted(hand)
         self.points = 0
 
     def __str__(self):
         return str(self.hand)
+
+    @abc.abstractmethod
+    def select_card(self):
+        pass
+
+    @abc.abstractmethod
+    def select_pile(self):
+        pass
+
+
+class HumanPlayer(Player):
+    def __init__(self, uid, hand):
+        name = click.prompt(f'Player {uid}\'s name', type=str)
+        super().__init__(uid, name, hand)
 
     def select_card(self):
         click.echo(self)
@@ -57,16 +71,30 @@ class Player(object):
             'Select pile', type=click.IntRange(1, NUM_PILES)) - 1
 
 
+class RandomPlayer(Player):
+    def __init__(self, uid, hand):
+        super().__init__(uid, 'CPU', hand)
+
+    def select_card(self):
+        selected_card = random.choice(self.hand)
+        self.hand.remove(selected_card)
+        return selected_card
+
+    def select_pile(self):
+        return random.choice(range(NUM_PILES))
+
+
 class Game(object):
-    def __init__(self, num_players):
-        self.num_players = num_players
+    def __init__(self, player_types):
+        self.num_players = len(player_types)
         game_deck = set(range(1, DECK_SIZE+1))
         self.players = []
-        # Deal cards to players
-        for idx in range(num_players):
+        # Iterate over list of player classes
+        for idx, player_type in enumerate(player_types):
+            # Deal cards to players
             player_hand = random.sample(game_deck, PLAYER_HAND_SIZE)
             game_deck.difference_update(player_hand)
-            self.players.append(Player(idx+1, player_hand))
+            self.players.append(player_type(idx+1, player_hand))
         # Initialize game board
         base_cards = sorted(random.sample(game_deck, NUM_PILES))
         self.board = [Pile(base_card) for base_card in base_cards]
@@ -92,7 +120,7 @@ class Game(object):
     def play_game(self):
         for turn in range(PLAYER_HAND_SIZE):
             for player in self.players:
-                click.echo(self)
+                click.echo('\n'.join(['-'*25, str(self), '-'*25]))
                 self.play_turn(player)
         # Compute scores
         all_points = [player.points for player in self.players]
@@ -109,5 +137,17 @@ class Game(object):
 def main():
     num_players = click.prompt(
         'Number of players', type=click.IntRange(2, MAX_NUM_PLAYERS))
-    game = Game(num_players)
+    player_types = []
+    player_type_dict = {
+        'human': HumanPlayer,
+        'random': RandomPlayer,
+    }
+    # Query player types
+    for idx in range(num_players):
+        player_type = click.prompt(f'Player {idx+1} type', type=click.Choice(
+            ['human', 'random'], case_sensitive=False))
+        player_type = player_type_dict[player_type]
+        player_types.append(player_type)
+    # Start game
+    game = Game(player_types)
     game.play_game()
