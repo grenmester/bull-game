@@ -47,13 +47,14 @@ class Player(object):
     def select_card(self):
         click.echo(self)
         selected_idx = click.prompt(
-            f'{self.name}\'s move', type=click.IntRange(0, len(self.hand)-1))
+            f'{self.name}\'s move', type=click.IntRange(1, len(self.hand))) - 1
         selected_card = self.hand[selected_idx]
         self.hand.remove(selected_card)
         return selected_card
 
     def select_pile(self):
-        return click.prompt('Select pile', type=click.IntRange(0, NUM_PILES-1))
+        return click.prompt(
+            'Select pile', type=click.IntRange(1, NUM_PILES)) - 1
 
 
 class Game(object):
@@ -65,7 +66,7 @@ class Game(object):
         for idx in range(num_players):
             player_hand = random.sample(game_deck, PLAYER_HAND_SIZE)
             game_deck.difference_update(player_hand)
-            self.players.append(Player(idx, player_hand))
+            self.players.append(Player(idx+1, player_hand))
         # Initialize game board
         base_cards = sorted(random.sample(game_deck, NUM_PILES))
         self.board = [Pile(base_card) for base_card in base_cards]
