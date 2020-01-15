@@ -35,7 +35,9 @@ class Pile(object):
 
 
 class Player(object):
-    def __init__(self, hand):
+    def __init__(self, uid, hand):
+        name = click.prompt(f'Player {uid}\'s name', type=str)
+        self.name = f'(UID: {uid}) {name}'
         self.hand = sorted(hand)
         self.points = 0
 
@@ -45,7 +47,7 @@ class Player(object):
     def select_card(self):
         click.echo(self)
         selected_idx = click.prompt(
-            'Player move', type=click.IntRange(0, len(self.hand)-1))
+            f'{self.name}\'s move', type=click.IntRange(0, len(self.hand)-1))
         selected_card = self.hand[selected_idx]
         self.hand.remove(selected_card)
         return selected_card
@@ -60,10 +62,10 @@ class Game(object):
         game_deck = set(range(1, DECK_SIZE+1))
         self.players = []
         # Deal cards to players
-        for _ in range(num_players):
+        for idx in range(num_players):
             player_hand = random.sample(game_deck, PLAYER_HAND_SIZE)
             game_deck.difference_update(player_hand)
-            self.players.append(Player(player_hand))
+            self.players.append(Player(idx, player_hand))
         # Initialize game board
         base_cards = sorted(random.sample(game_deck, NUM_PILES))
         self.board = [Pile(base_card) for base_card in base_cards]
@@ -93,13 +95,12 @@ class Game(object):
                 self.play_turn(player)
         # Compute scores
         all_points = [player.points for player in self.players]
-        winners = np.argwhere(all_points == np.amin(all_points)).flatten()
+        winner_idxs = np.argwhere(all_points == np.amin(all_points)).flatten()
+        winners = ', '.join([self.players[idx].name for idx in winner_idxs])
         click.echo(f'The final scores are {all_points}.')
-        if len(winners) == 1:
-            winner = winners[0]
-            click.echo(f'The winner is Player {winner}!')
+        if len(winner_idxs) == 1:
+            click.echo(f'The winner is {winners}!')
         else:
-            winners = ', '.join([f'Player {winner}' for winner in winners])
             click.echo(f'There is a tie between {winners}!')
 
 
