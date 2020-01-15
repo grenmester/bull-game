@@ -3,7 +3,8 @@ import click
 import numpy as np
 import random
 
-DECK_SIZE = 100
+DECK_SIZE = 104
+MAX_NUM_PLAYERS = 10
 NUM_PILES = 4
 PILE_SIZE = 5
 PLAYER_HAND_SIZE = 10
@@ -43,13 +44,14 @@ class Player(object):
 
     def select_card(self):
         click.echo(self)
-        selected_idx = click.prompt('Player move', type=int)
+        selected_idx = click.prompt(
+            'Player move', type=click.IntRange(0, len(self.hand)-1))
         selected_card = self.hand[selected_idx]
         self.hand.remove(selected_card)
         return selected_card
 
     def select_pile(self):
-        return click.prompt('Select pile', type=int)
+        return click.prompt('Select pile', type=click.IntRange(0, NUM_PILES-1))
 
 
 class Game(object):
@@ -103,6 +105,7 @@ class Game(object):
 
 @click.command()
 def main():
-    num_players = click.prompt('Number of players', type=int)
+    num_players = click.prompt(
+        'Number of players', type=click.IntRange(2, MAX_NUM_PLAYERS))
     game = Game(num_players)
     game.play_game()
