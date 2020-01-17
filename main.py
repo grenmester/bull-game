@@ -22,6 +22,10 @@ class Pile(object):
         return str(self.cards[:self.size])
 
     def add_card(self, card):
+        '''
+        Add card to pile. Reset the pile if the pile is already at max size.
+        Return points given to player for move.
+        '''
         if self.size >= PILE_SIZE or card < self.high_card:
             # Reset pile
             points = self.size
@@ -46,10 +50,16 @@ class Player(abc.ABC):
 
     @abc.abstractmethod
     def select_card(self):
+        '''
+        Select a card from the player hand.
+        '''
         pass
 
     @abc.abstractmethod
     def select_pile(self):
+        '''
+        Select a pile to be replaced.
+        '''
         pass
 
 
@@ -59,6 +69,9 @@ class HumanPlayer(Player):
         super().__init__(uid, name, hand)
 
     def select_card(self):
+        '''
+        Query a card from the player hand.
+        '''
         click.echo(self)
         selected_idx = click.prompt(
             f'{self.name}\'s move', type=click.IntRange(1, len(self.hand))) - 1
@@ -67,6 +80,9 @@ class HumanPlayer(Player):
         return selected_card
 
     def select_pile(self):
+        '''
+        Query a pile to be replaced.
+        '''
         return click.prompt(
             'Select pile', type=click.IntRange(1, NUM_PILES)) - 1
 
@@ -76,11 +92,17 @@ class RandomPlayer(Player):
         super().__init__(uid, 'CPU', hand)
 
     def select_card(self):
+        '''
+        Select a random card from the player hand.
+        '''
         selected_card = random.choice(self.hand)
         self.hand.remove(selected_card)
         return selected_card
 
     def select_pile(self):
+        '''
+        Select a random pile to be replaced.
+        '''
         return random.choice(range(NUM_PILES))
 
 
@@ -103,6 +125,9 @@ class Game(object):
         return '\n'.join([str(pile) for pile in self.board])
 
     def play_turn(self, player):
+        '''
+        Play one turn of one player.
+        '''
         # Player chooses move
         selected_card = player.select_card()
         high_cards = [pile.high_card for pile in self.board]
@@ -118,6 +143,9 @@ class Game(object):
         self.board = sorted(self.board, key=lambda pile: pile.high_card)
 
     def play_game(self):
+        '''
+        Play a game.
+        '''
         for turn in range(PLAYER_HAND_SIZE):
             for player in self.players:
                 click.echo('\n'.join(['-'*25, str(self), '-'*25]))
@@ -135,6 +163,9 @@ class Game(object):
 
 @click.command()
 def main():
+    '''
+    Query number of players, player types, and player names then play a game.
+    '''
     num_players = click.prompt(
         'Number of players', type=click.IntRange(2, MAX_NUM_PLAYERS))
     player_types = []
@@ -148,6 +179,6 @@ def main():
             ['human', 'random'], case_sensitive=False))
         player_type = player_type_dict[player_type]
         player_types.append(player_type)
-    # Start game
+    # Play game
     game = Game(player_types)
     game.play_game()
