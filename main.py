@@ -11,47 +11,58 @@ PILE_SIZE = 5
 PLAYER_HAND_SIZE = 10
 
 
-class Pile(object):
-    def __init__(self, base_card):
-        self.cards = np.zeros(PILE_SIZE, dtype=int)
-        self.cards[0] = base_card
-        self.size = 1
-        self.high_card = base_card
+class Card(object):
+    def __init__(self, value):
+        self.value = value
 
     def __str__(self):
-        return str(self.cards[:self.size])
+        return str(self.value)
 
-    def add_card(self, card):
+    @property
+    def points(self):
+        return 1
+
+
+class Pile(object):
+    def __init__(self, base_value):
+        self.cards = [Card(base_value)]
+        self.size = 1
+        self.high_value = base_value
+
+    def __str__(self):
+        return ' '.join([str(card) for card in self.cards])
+
+    def add_value(self, value):
         '''
         Add card to pile. Reset the pile if the pile is already at max size.
         Return points given to player for move.
         '''
-        if self.size >= PILE_SIZE or card < self.high_card:
+        if self.size >= PILE_SIZE or value < self.high_value:
             # Reset pile
-            points = self.size
-            self.__init__(card)
+            points = sum([card.points for card in self.cards])
+            self.__init__(value)
             return points
         else:
             # Add card to pile
-            self.cards[self.size] = card
+            self.cards.append(Card(value))
             self.size += 1
-            self.high_card = card
+            self.high_value = value
             return 0
 
 
 class Player(abc.ABC):
     def __init__(self, uid, name, hand):
         self.name = f'(UID: {uid}) {name}'
-        self.hand = sorted(hand)
+        self.hand = [Card(card) for card in sorted(hand)]
         self.points = 0
 
     def __str__(self):
-        return str(self.hand)
+        return ' '.join([str(card) for card in self.hand])
 
     @abc.abstractmethod
-    def select_card(self):
+    def select_value(self):
         '''
-        Select a card from the player hand.
+        Select a card value from the player hand.
         '''
         pass
 
@@ -68,16 +79,16 @@ class HumanPlayer(Player):
         name = click.prompt(f'Player {uid}\'s name', type=str)
         super().__init__(uid, name, hand)
 
-    def select_card(self):
+    def select_value(self):
         '''
-        Query a card from the player hand.
+        Query a card value from the player hand.
         '''
         click.echo(self)
         selected_idx = click.prompt(
             f'{self.name}\'s move', type=click.IntRange(1, len(self.hand))) - 1
         selected_card = self.hand[selected_idx]
         self.hand.remove(selected_card)
-        return selected_card
+        return selected_card.value
 
     def select_pile(self):
         '''
@@ -91,13 +102,13 @@ class RandomPlayer(Player):
     def __init__(self, uid, hand):
         super().__init__(uid, 'CPU', hand)
 
-    def select_card(self):
+    def select_value(self):
         '''
-        Select a random card from the player hand.
+        Select a random card value from the player hand.
         '''
         selected_card = random.choice(self.hand)
         self.hand.remove(selected_card)
-        return selected_card
+        return selected_card.value
 
     def select_pile(self):
         '''
@@ -118,8 +129,8 @@ class Game(object):
             game_deck.difference_update(player_hand)
             self.players.append(player_type(idx+1, player_hand))
         # Initialize game board
-        base_cards = sorted(random.sample(game_deck, NUM_PILES))
-        self.board = [Pile(base_card) for base_card in base_cards]
+        base_values = sorted(random.sample(game_deck, NUM_PILES))
+        self.board = [Pile(base_value) for base_value in base_values]
 
     def __str__(self):
         return '\n'.join([str(pile) for pile in self.board])
@@ -129,18 +140,18 @@ class Game(object):
         Play one turn of one player.
         '''
         # Player chooses move
-        selected_card = player.select_card()
-        high_cards = [pile.high_card for pile in self.board]
-        if selected_card > min(high_cards):
+        selected_value = player.select_value()
+        high_values = [pile.high_value for pile in self.board]
+        if selected_value > min(high_values):
             # Regular move
-            card_pile = bisect.bisect(high_cards, selected_card) - 1
+            pile = bisect.bisect(high_values, selected_value) - 1
         else:
             # A pile has to be replaced
-            card_pile = player.select_pile()
+            pile = player.select_pile()
         # Add card to pile and give points to player
-        player.points += self.board[card_pile].add_card(selected_card)
+        player.points += self.board[pile].add_value(selected_value)
         # Resort piles by highest value card
-        self.board = sorted(self.board, key=lambda pile: pile.high_card)
+        self.board = sorted(self.board, key=lambda pile: pile.high_value)
 
     def play_game(self):
         '''
