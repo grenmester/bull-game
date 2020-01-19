@@ -20,7 +20,19 @@ class Card(object):
 
     @property
     def points(self):
-        return 1
+        '''
+        Return the point value of the card.
+        '''
+        if self.value % 55 == 0:
+            return 7
+        elif self.value % 11 == 0:
+            return 5
+        elif self.value % 10 == 0:
+            return 3
+        elif self.value % 5 == 0:
+            return 2
+        else:
+            return 1
 
 
 class Pile(object):
