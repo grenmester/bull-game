@@ -4,7 +4,7 @@ import click
 import numpy as np
 import random
 
-DECK_SIZE = 104
+MAX_DECK_SIZE = 999
 MAX_NUM_PLAYERS = 10
 NUM_PILES = 4
 PILE_SIZE = 5
@@ -130,9 +130,9 @@ class RandomPlayer(Player):
 
 
 class Game(object):
-    def __init__(self, player_types):
+    def __init__(self, player_types, deck_size):
         self.num_players = len(player_types)
-        game_deck = set(range(1, DECK_SIZE+1))
+        game_deck = set(range(1, deck_size+1))
         self.players = []
         # Iterate over list of player classes
         for idx, player_type in enumerate(player_types):
@@ -185,23 +185,35 @@ class Game(object):
 
 
 @click.command()
-def main():
+@click.option('-p', '--num-players', default=2,
+              type=click.IntRange(2, MAX_NUM_PLAYERS, clamp=True),
+              help='Number of players.')
+@click.option('-d', '--deck-size', default=0,
+              type=click.IntRange(0, MAX_DECK_SIZE, clamp=True),
+              help='Deck size.')
+def main(num_players, deck_size):
     '''
     Query number of players, player types, and player names then play a game.
     '''
-    num_players = click.prompt(
-        'Number of players', type=click.IntRange(2, MAX_NUM_PLAYERS))
+    # Adjust deck size if necessary to ensure sufficient cards
+    deck_size = max(deck_size, 10*num_players+4)
+    click.echo(f'Initializing a game with {num_players} players and a deck of '
+               f'{deck_size} cards...')
+    # Query player types
     player_types = []
     player_type_dict = {
         'human': HumanPlayer,
         'random': RandomPlayer,
     }
-    # Query player types
     for idx in range(num_players):
         player_type = click.prompt(f'Player {idx+1} type', type=click.Choice(
             ['human', 'random'], case_sensitive=False))
         player_type = player_type_dict[player_type]
         player_types.append(player_type)
     # Play game
-    game = Game(player_types)
+    game = Game(player_types, deck_size)
     game.play_game()
+
+
+if __name__ == '__main__':
+    main()
